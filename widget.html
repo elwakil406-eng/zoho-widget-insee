@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recherche INSEE</title>
-    <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,8 +41,10 @@
         .btn-validate:hover { box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); }
         .btn-validate:disabled { opacity: 0.6; cursor: not-allowed; }
         .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
-        .sdk-warning { background: #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none; }
-        .sdk-warning.visible { display: block; }
+        .sdk-status { padding: 8px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; font-weight: 500; }
+        .sdk-status.loading { background: #fef3c7; color: #92400e; }
+        .sdk-status.ok { background: #d1fae5; color: #065f46; }
+        .sdk-status.error { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
@@ -54,7 +55,7 @@
             <p>Recherchez une entreprise par raison sociale</p>
         </div>
     </div>
-    <div class="sdk-warning" id="sdkWarning">⚠️ SDK Zoho non chargé — le remplissage automatique sera indisponible.</div>
+    <div class="sdk-status loading" id="sdkStatus">⏳ Chargement du SDK Zoho...</div>
     <div class="search-section">
         <div class="search-row">
             <input type="text" class="search-input" id="searchInput" placeholder="Saisissez la raison sociale..." autofocus>
@@ -93,20 +94,61 @@
 
         let selectedCompany = null;
         let currentResults = [];
+        let sdkLoaded = false;
 
-        // Vérification du SDK Zoho au démarrage
-        window.addEventListener('load', function() {
-            console.log("🔍 Vérification du SDK Zoho...");
-            console.log("ZOHO :", typeof ZOHO);
+        // CHARGEMENT ROBUSTE DU SDK ZOHO AVEC FALLBACKS
+        function loadZohoSDK() {
+            var sdkUrls = [
+                "https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js",
+                "https://static.zohocdn.com/crm/javascript/api/2.0/api.js",
+                "https://js.zohostatic.com/crm/jsapi/2.0/ZSDK.js"
+            ];
             
-            if (typeof ZOHO === 'undefined') {
-                console.error("❌ Le SDK Zoho n'est pas chargé !");
-                document.getElementById('sdkWarning').classList.add('visible');
-                return;
+            var currentIndex = 0;
+            
+            function tryNext() {
+                if (currentIndex >= sdkUrls.length) {
+                    console.error("❌ Tous les URLs SDK ont échoué");
+                    document.getElementById('sdkStatus').className = 'sdk-status error';
+                    document.getElementById('sdkStatus').textContent = '❌ SDK Zoho introuvable - voir console';
+                    return;
+                }
+                
+                var url = sdkUrls[currentIndex];
+                console.log("🔄 Tentative chargement SDK : " + url);
+                
+                var script = document.createElement('script');
+                script.src = url;
+                
+                script.onload = function() {
+                    console.log("✅ Script chargé : " + url);
+                    // Attendre un court instant pour que ZOHO soit défini
+                    setTimeout(function() {
+                        if (typeof ZOHO !== 'undefined') {
+                            console.log("✅ Objet ZOHO disponible !");
+                            sdkLoaded = true;
+                            initZohoApp();
+                        } else {
+                            console.warn("⚠️ Script chargé mais ZOHO non défini : " + url);
+                            currentIndex++;
+                            tryNext();
+                        }
+                    }, 200);
+                };
+                
+                script.onerror = function() {
+                    console.error("❌ Échec chargement : " + url);
+                    currentIndex++;
+                    tryNext();
+                };
+                
+                document.head.appendChild(script);
             }
             
-            console.log("✅ SDK Zoho chargé");
-            
+            tryNext();
+        }
+        
+        function initZohoApp() {
             try {
                 ZOHO.embeddedApp.on("PageLoad", function(data) {
                     console.log("📥 PageLoad reçu :", data);
@@ -115,11 +157,22 @@
                     }
                 });
                 ZOHO.embeddedApp.init();
-                console.log("✅ embeddedApp initialisé");
+                console.log("✅ embeddedApp.init() OK");
+                document.getElementById('sdkStatus').className = 'sdk-status ok';
+                document.getElementById('sdkStatus').textContent = '✅ SDK Zoho prêt';
+                // Masquer le statut après 2 secondes
+                setTimeout(function() {
+                    document.getElementById('sdkStatus').style.display = 'none';
+                }, 2000);
             } catch (e) {
-                console.error("❌ Erreur init embeddedApp :", e);
+                console.error("❌ Erreur init :", e);
+                document.getElementById('sdkStatus').className = 'sdk-status error';
+                document.getElementById('sdkStatus').textContent = '❌ Erreur init : ' + e.message;
             }
-        });
+        }
+        
+        // Lancement du chargement dès l'ouverture
+        loadZohoSDK();
 
         document.getElementById('searchInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') searchCompany();
@@ -215,7 +268,8 @@
             }
 
             if (typeof ZOHO === 'undefined') {
-                alert("Erreur : le SDK Zoho n'est pas chargé. Vérifiez la console pour plus de détails.");
+                alert("Le SDK Zoho n'est pas chargé. Vérifiez la console (F12) pour identifier le problème.");
+                console.error("❌ ZOHO non défini au moment de la validation");
                 return;
             }
 
@@ -246,14 +300,12 @@
                     })
                     .catch(function(err) {
                         console.error("❌ ERREUR catch :", err);
-                        alert("Erreur lors du remplissage : " + JSON.stringify(err));
+                        alert("Erreur : " + JSON.stringify(err));
                     });
             } catch (e) {
                 console.error("❌ EXCEPTION :", e);
                 alert("Exception : " + e.message);
             }
-
-            console.log("===== FIN validateSelection =====");
         }
 
         function closeWidget() {
