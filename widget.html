@@ -5,26 +5,29 @@
     <title>Recherche INSEE</title>
     <script src="https://static.zohocdn.com/crm/jsapi/2.0/ZSDK.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        .result-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; cursor: pointer; }
-        .result-card:hover { background: #f0f0f0; }
-        .btn { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        body { font-family: sans-serif; padding: 20px; background: #f8f9fb; }
+        .search-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        .result-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; cursor: pointer; background: white; border-radius: 8px; }
+        .result-card:hover { border-color: #007bff; }
     </style>
 </head>
 <body>
-    <input type="text" id="searchInput" placeholder="Raison sociale...">
-    <button class="btn" onclick="searchCompany()">Rechercher</button>
+    <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Nom de l'entreprise...">
+        <button class="btn" onclick="searchCompany()">Rechercher</button>
+    </div>
     <div id="resultsContainer"></div>
 
     <script>
         let currentResults = [];
-
         ZOHO.embeddedApp.init();
 
         async function searchCompany() {
-            var query = document.getElementById('searchInput').value;
-            var response = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(query));
-            var data = await response.json();
+            let query = document.getElementById('searchInput').value;
+            let res = await fetch("https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(query));
+            let data = await res.json();
             currentResults = data.results;
             
             let html = "";
@@ -41,25 +44,20 @@
             let c = currentResults[index];
             let siege = c.siege || {};
             
-            // On prépare les données exactement comme Zoho les attend
-            let recordData = {
+            // Les données envoyées au formulaire parent
+            let dataToSend = {
                 "Account_Name": c.nom_complet || "",
                 "Adresse": siege.adresse || "",
                 "Code_Postale": siege.code_postal ? String(siege.code_postal) : "",
                 "Ville": siege.libelle_commune || "",
-                "Siret": siege.siret || ""
+                "Siret": siege.siret ? String(siege.siret) : "",
+                "Forme_juridique": c.nature_juridique || "",
+                "NUMERO_DE_TVA": (c.siren ? "FR" + ((12 + 3 * (parseInt(c.siren) % 97)) % 97) + c.siren : "")
             };
 
-            // LA MÉTHODE QUI PASSE PARTOUT :
-            ZOHO.CRM.API.insertRecord({
-                Entity: "Enseignes",
-                APIData: recordData,
-                Trigger: ["workflow"]
-            }).then(function(data){
-                ZOHO.CRM.UI.Popup.close();
-            }).catch(function(err){
-                alert("Erreur critique : " + JSON.stringify(err));
-            });
+            // Envoi vers Zoho via le pont de communication
+            window.parent.postMessage({ type: "INSEE_DATA", data: dataToSend }, "*");
+            ZOHO.CRM.UI.Popup.close();
         }
     </script>
 </body>
