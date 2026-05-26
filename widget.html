@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recherche INSEE</title>
-    <script src="https://static.zohocdn.com/crm/jsapi/2.0/ZSDK.js"></script>
+    <script src="https://live.zwidgets.com/js-sdk/1.2/ZohoEmbededAppSDK.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,6 +42,8 @@
         .btn-validate:hover { box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); }
         .btn-validate:disabled { opacity: 0.6; cursor: not-allowed; }
         .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
+        .sdk-warning { background: #fef3c7; color: #92400e; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; display: none; }
+        .sdk-warning.visible { display: block; }
     </style>
 </head>
 <body>
@@ -52,6 +54,7 @@
             <p>Recherchez une entreprise par raison sociale</p>
         </div>
     </div>
+    <div class="sdk-warning" id="sdkWarning">⚠️ SDK Zoho non chargé — le remplissage automatique sera indisponible.</div>
     <div class="search-section">
         <div class="search-row">
             <input type="text" class="search-input" id="searchInput" placeholder="Saisissez la raison sociale..." autofocus>
@@ -91,13 +94,32 @@
         let selectedCompany = null;
         let currentResults = [];
 
-        ZOHO.embeddedApp.on("PageLoad", function(data) {
-            console.log("📥 PageLoad reçu :", data);
-            if (data && data.EntityName) {
-                document.getElementById('searchInput').value = data.EntityName;
+        // Vérification du SDK Zoho au démarrage
+        window.addEventListener('load', function() {
+            console.log("🔍 Vérification du SDK Zoho...");
+            console.log("ZOHO :", typeof ZOHO);
+            
+            if (typeof ZOHO === 'undefined') {
+                console.error("❌ Le SDK Zoho n'est pas chargé !");
+                document.getElementById('sdkWarning').classList.add('visible');
+                return;
+            }
+            
+            console.log("✅ SDK Zoho chargé");
+            
+            try {
+                ZOHO.embeddedApp.on("PageLoad", function(data) {
+                    console.log("📥 PageLoad reçu :", data);
+                    if (data && data.EntityName) {
+                        document.getElementById('searchInput').value = data.EntityName;
+                    }
+                });
+                ZOHO.embeddedApp.init();
+                console.log("✅ embeddedApp initialisé");
+            } catch (e) {
+                console.error("❌ Erreur init embeddedApp :", e);
             }
         });
-        ZOHO.embeddedApp.init();
 
         document.getElementById('searchInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') searchCompany();
@@ -192,22 +214,19 @@
                 return;
             }
 
-            console.log("✅ Société sélectionnée :", selectedCompany);
+            if (typeof ZOHO === 'undefined') {
+                alert("Erreur : le SDK Zoho n'est pas chargé. Vérifiez la console pour plus de détails.");
+                return;
+            }
 
-            // Vérification de la disponibilité de l'API Zoho
-            console.log("ZOHO.CRM.UI.Record.populate :",
-                typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI && ZOHO.CRM.UI.Record
-                    ? typeof ZOHO.CRM.UI.Record.populate
-                    : 'INDISPONIBLE');
+            console.log("✅ Société sélectionnée :", selectedCompany);
 
             var siege = selectedCompany.siege || {};
             var siren = "" + selectedCompany.siren;
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
             var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
-            // Construction de l'objet avec les VRAIS noms d'API confirmés depuis Zoho
             var recordData = {};
-
             if (nom) recordData["Account_Name"] = nom;
             if (siege.adresse) recordData["Adresse"] = siege.adresse;
             if (siege.code_postal) recordData["Code_Postale"] = siege.code_postal;
@@ -227,7 +246,6 @@
                     })
                     .catch(function(err) {
                         console.error("❌ ERREUR catch :", err);
-                        console.error("Erreur stringifiée :", JSON.stringify(err));
                         alert("Erreur lors du remplissage : " + JSON.stringify(err));
                     });
             } catch (e) {
@@ -239,7 +257,11 @@
         }
 
         function closeWidget() {
-            ZOHO.CRM.UI.Popup.close();
+            if (typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI && ZOHO.CRM.UI.Popup) {
+                ZOHO.CRM.UI.Popup.close();
+            } else {
+                window.close();
+            }
         }
     </script>
 </body>
