@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche INSEE</title>
+    <script src="https://static.zohocdn.com/crm/jsapi/2.0/ZSDK.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'DM Sans', sans-serif; background: #f8f9fb; color: #1a1a2e; padding: 24px; min-height: 100vh; }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .header-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #0052cc, #2684ff); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3); }
+        .header-text h1 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+        .header-text p { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .search-section { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        .search-row { display: flex; gap: 10px; }
+        .search-input { flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; transition: all 0.2s; outline: none; }
+        .search-input:focus { border-color: #2684ff; box-shadow: 0 0 0 3px rgba(38, 132, 255, 0.15); }
+        .search-input::placeholder { color: #9ca3af; }
+        .btn-search { padding: 12px 24px; background: linear-gradient(135deg, #0052cc, #2684ff); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn-search:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 82, 204, 0.35); }
+        .btn-search:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .status-bar { margin-top: 12px; font-size: 13px; color: #6b7280; display: none; }
+        .status-bar.visible { display: block; }
+        .status-bar.error { color: #dc2626; }
+        .results-section { display: none; }
+        .results-section.visible { display: block; }
+        .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .results-header h2 { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+        .results-count { background: #e0edff; color: #0052cc; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .result-card { background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .result-card:hover { border-color: #2684ff; box-shadow: 0 4px 12px rgba(38, 132, 255, 0.15); transform: translateY(-1px); }
+        .result-card.selected { border-color: #0052cc; background: #f0f7ff; }
+        .result-card .company-name { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+        .result-card .company-enseigne { font-size: 13px; color: #0052cc; font-weight: 500; margin-bottom: 8px; }
+        .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; }
+        .detail-item { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; }
+        .detail-label { color: #9ca3af; font-weight: 500; white-space: nowrap; }
+        .detail-value { color: #374151; font-weight: 500; }
+        .action-bar { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+        .action-bar.visible { display: flex; justify-content: flex-end; gap: 10px; }
+        .btn-cancel { padding: 10px 20px; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+        .btn-cancel:hover { border-color: #d1d5db; background: #f9fafb; }
+        .btn-validate { padding: 10px 24px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+        .btn-validate:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); }
+        .btn-validate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 80px; margin-bottom: 10px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
+        .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+        .empty-state p { font-size: 14px; }
+        .success-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
+        .success-overlay.visible { display: flex; }
+        .success-checkmark { width: 64px; height: 64px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; margin-bottom: 16px; animation: popIn 0.3s ease-out; }
+        @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .success-overlay h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+        .success-overlay p { font-size: 14px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-icon">IN</div>
+        <div class="header-text">
+            <h1>Recherche INSEE</h1>
+            <p>Recherchez une entreprise par raison sociale</p>
+        </div>
+    </div>
+    <div class="search-section">
+        <div class="search-row">
+            <input type="text" class="search-input" id="searchInput" placeholder="Saisissez la raison sociale..." autofocus>
+            <button class="btn-search" id="btnSearch" onclick="searchCompany()">Rechercher</button>
+        </div>
+        <div class="status-bar" id="statusBar"></div>
+    </div>
+    <div class="results-section" id="resultsSection">
+        <div class="results-header">
+            <h2>Résultats INSEE</h2>
+            <span class="results-count" id="resultsCount"></span>
+        </div>
+        <div id="resultsContainer"></div>
+    </div>
+    <div class="action-bar" id="actionBar">
+        <button class="btn-cancel" onclick="closeWidget()">Annuler</button>
+        <button class="btn-validate" id="btnValidate" onclick="validateSelection()" disabled>Valider la sélection</button>
+    </div>
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-checkmark">&#10003;</div>
+        <h2>Champs remplis</h2>
+        <p>Les informations INSEE ont été appliquées au formulaire</p>
+    </div>
+
+    <script>
+        const FIELD_MAPPING = {
+            rue:              "Adresse",
+            codePostal:       "Code_Postale",
+            ville:            "Ville",
+            formeJuridique:   "Forme_juridique",
+            tva:              "NUMERO_DE_TVA",
+            categorie:        "Cat_gorie_d_entreprise",
+            nomEntreprise:    "Account_Name",
+            siret:            "Siret"
+        };
+
+        const FORMES_JURIDIQUES = {
+            "1000": "Entrepreneur individuel", "5410": "SARL unipersonnelle", "5499": "Société à responsabilité limitée", "5505": "SA à conseil d'administration", "5510": "SA à directoire", "5599": "SA (sans autre indication)", "5699": "SA (sans autre indication)", "5710": "SAS", "5720": "SASU", "5800": "Société Européenne", "6210": "EIRL", "5306": "SNC", "5307": "SCS", "5308": "SCA", "5485": "SEL à responsabilité limitée", "5585": "SA SEL à conseil d'administration", "5785": "SAS SEL", "5498": "SARL (sans autre indication)", "5560": "SA à directoire (sans autre indication)", "1200": "Indivision entre personnes physiques", "5202": "Société en nom collectif coopérative", "6316": "SELAS", "6317": "SELASU", "6318": "SELARL", "6319": "SELARLU"
+        };
+
+        let selectedCompany = null;
+        let currentResults = [];
+        let widgetContext = null;
+
+        ZOHO.embeddedApp.on("PageLoad", function(data) {
+            widgetContext = data;
+            if (data && data.EntityName) {
+                document.getElementById('searchInput').value = data.EntityName;
+            }
+        });
+        ZOHO.embeddedApp.init();
+
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') searchCompany();
+        });
+
+        function calculerTVA(siren) {
+            if (!siren) return "";
+            var sirenNum = parseInt(siren);
+            if (isNaN(sirenNum)) return "";
+            var cle = ((12 + 3 * (sirenNum % 97)) % 97);
+            var cleStr = cle < 10 ? "0" + cle : "" + cle;
+            return "FR" + cleStr + siren;
+        }
+
+        function getFormeJuridique(code) {
+            if (!code) return "";
+            var codeStr = "" + code;
+            return FORMES_JURIDIQUES[codeStr] || codeStr;
+        }
+
+        async function searchCompany() {
+            var query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            var btn = document.getElementById('btnSearch');
+            var statusBar = document.getElementById('statusBar');
+            var resultsSection = document.getElementById('resultsSection');
+            var resultsContainer = document.getElementById('resultsContainer');
+            var actionBar = document.getElementById('actionBar');
+
+            selectedCompany = null;
+            document.getElementById('btnValidate').disabled = true;
+            actionBar.classList.remove('visible');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Recherche...';
+            statusBar.className = 'status-bar visible';
+            statusBar.textContent = "Recherche en cours sur l'Annuaire des Entreprises...";
+            resultsSection.classList.add('visible');
+            resultsContainer.innerHTML = '<div class="loading-skeleton"></div><div class="loading-skeleton"></div><div class="loading-skeleton"></div>';
+
+            try {
+                var url = "https://recherche-entreprises.api.gouv.fr/search?q=" + encodeURIComponent(query) + "&per_page=10";
+                var response = await fetch(url);
+                var data = await response.json();
+
+                currentResults = data.results || [];
+
+                if (currentResults.length === 0) {
+                    resultsContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128269;</div><p>Aucune entreprise trouvée pour "<strong>' + query + '</strong>"</p></div>';
+                    statusBar.textContent = 'Aucun résultat trouvé.';
+                    document.getElementById('resultsCount').textContent = '0 résultat';
+                } else {
+                    document.getElementById('resultsCount').textContent = currentResults.length + ' résultat(s)';
+                    statusBar.textContent = currentResults.length + ' entreprise(s) trouvée(s).';
+
+                    var html = '';
+                    for (var i = 0; i < currentResults.length; i++) {
+                        var company = currentResults[i];
+                        var siege = company.siege || {};
+                        var enseigne = siege.liste_enseignes ? siege.liste_enseignes.join(', ') : '';
+                        var formeJur = getFormeJuridique(company.nature_juridique);
+                        var nomCommercial = siege.nom_commercial || '';
+                        var tva = calculerTVA("" + company.siren);
+
+                        html += '<div class="result-card" id="card-' + i + '" onclick="selectCompany(' + i + ')">';
+                        html += '<div class="company-name">' + (company.nom_complet || company.nom_raison_sociale || '—') + '</div>';
+                        if (enseigne) html += '<div class="company-enseigne">Enseigne : ' + enseigne + '</div>';
+                        if (nomCommercial) html += '<div class="company-enseigne">Nom commercial : ' + nomCommercial + '</div>';
+                        html += '<div class="result-details">';
+                        html += '<div class="detail-item"><span class="detail-label">SIRET</span><span class="detail-value">' + (siege.siret || '—') + '</span></div>';
+                        html += '<div class="detail-item"><span class="detail-label">TVA</span><span class="detail-value">' + (tva || '—') + '</span></div>';
+                        html += '<div class="detail-item"><span class="detail-label">Adresse</span><span class="detail-value">' + (siege.adresse || '—') + '</span></div>';
+                        html += '<div class="detail-item"><span class="detail-label">Code APE</span><span class="detail-value">' + (company.activite_principale || '—') + '</span></div>';
+                        html += '<div class="detail-item"><span class="detail-label">Forme juridique</span><span class="detail-value">' + formeJur + '</span></div>';
+                        html += '<div class="detail-item"><span class="detail-label">Catégorie</span><span class="detail-value">' + (company.categorie_entreprise || '—') + '</span></div>';
+                        html += '</div></div>';
+                    }
+                    resultsContainer.innerHTML = html;
+                }
+
+                actionBar.classList.add('visible');
+
+            } catch (error) {
+                console.error('Erreur API:', error);
+                statusBar.className = 'status-bar visible error';
+                statusBar.textContent = 'Erreur lors de la recherche. Veuillez réessayer.';
+                resultsContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;&#65039;</div><p>Erreur de connexion à l\'API INSEE</p></div>';
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Rechercher';
+        }
+
+        function selectCompany(index) {
+            var cards = document.querySelectorAll('.result-card');
+            for (var j = 0; j < cards.length; j++) {
+                cards[j].classList.remove('selected');
+            }
+            document.getElementById('card-' + index).classList.add('selected');
+            selectedCompany = currentResults[index];
+            document.getElementById('btnValidate').disabled = false;
+        }
+
+        async function validateSelection() {
+            if (!selectedCompany) return;
+
+            var btn = document.getElementById('btnValidate');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Mise à jour...';
+
+            var siege = selectedCompany.siege || {};
+            var siren = "" + selectedCompany.siren;
+            var tva = calculerTVA(siren);
+            var formeJur = getFormeJuridique(selectedCompany.nature_juridique);
+
+            var fieldData = {};
+            fieldData[FIELD_MAPPING.rue] = siege.adresse || "";
+            fieldData[FIELD_MAPPING.codePostal] = siege.code_postal ? "" + siege.code_postal : "";
+            fieldData[FIELD_MAPPING.ville] = siege.libelle_commune || "";
+            fieldData[FIELD_MAPPING.formeJuridique] = formeJur;
+            fieldData[FIELD_MAPPING.tva] = tva;
+            fieldData[FIELD_MAPPING.categorie] = selectedCompany.categorie_entreprise || "";
+            fieldData[FIELD_MAPPING.siret] = siege.siret ? "" + siege.siret : "";
+
+            try {
+                await ZOHO.CRM.UI.Record.populate(fieldData);
+                document.getElementById('successOverlay').classList.add('visible');
+                setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 1500);
+            } catch (error) {
+                console.error('Erreur populate:', error);
+                try {
+                    var keys = Object.keys(fieldData);
+                    for (var k = 0; k < keys.length; k++) {
+                        await ZOHO.CRM.UI.Record.set({ apiName: keys[k], value: fieldData[keys[k]] });
+                    }
+                    document.getElementById('successOverlay').classList.add('visible');
+                    setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 1500);
+                } catch (error2) {
+                    console.error('Erreur set:', error2);
+                    alert('Erreur lors du remplissage. Veuillez réessayer.');
+                    btn.disabled = false;
+                    btn.textContent = 'Valider la sélection';
+                }
+            }
+        }
+
+        function closeWidget() {
+            ZOHO.CRM.UI.Popup.close();
+        }
+    </script>
+</body>
+</html>
