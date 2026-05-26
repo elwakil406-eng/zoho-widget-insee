@@ -244,25 +244,29 @@
             fieldData[FIELD_MAPPING.categorie] = selectedCompany.categorie_entreprise || "";
             fieldData[FIELD_MAPPING.siret] = siege.siret ? "" + siege.siret : "";
 
-            try {
-                await ZOHO.CRM.UI.Record.populate(fieldData);
+            // METHODE ANTI-BLOCAGE : On envoie les champs un par un
+            let hasSuccess = false;
+            let keys = Object.keys(fieldData);
+            
+            for (var k = 0; k < keys.length; k++) {
+                try {
+                    let singleData = {};
+                    singleData[keys[k]] = fieldData[keys[k]];
+                    await ZOHO.CRM.UI.Record.set({ apiName: keys[k], value: fieldData[keys[k]] });
+                    hasSuccess = true;
+                } catch(e) {
+                    console.log("Erreur sur le champ " + keys[k] + " :", e);
+                    // On ignore l'erreur et on continue avec les autres champs
+                }
+            }
+
+            if(hasSuccess) {
                 document.getElementById('successOverlay').classList.add('visible');
                 setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 1500);
-            } catch (error) {
-                console.error('Erreur populate:', error);
-                try {
-                    var keys = Object.keys(fieldData);
-                    for (var k = 0; k < keys.length; k++) {
-                        await ZOHO.CRM.UI.Record.set({ apiName: keys[k], value: fieldData[keys[k]] });
-                    }
-                    document.getElementById('successOverlay').classList.add('visible');
-                    setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 1500);
-                } catch (error2) {
-                    console.error('Erreur set:', error2);
-                    alert('Erreur lors du remplissage. Veuillez réessayer.');
-                    btn.disabled = false;
-                    btn.textContent = 'Valider la sélection';
-                }
+            } else {
+                alert("Impossible de remplir les champs. Vérifiez la configuration.");
+                btn.disabled = false;
+                btn.textContent = 'Valider la sélection';
             }
         }
 
