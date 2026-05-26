@@ -73,13 +73,26 @@
 
     <script>
         const FORMES_JURIDIQUES = {
-            "1000": "Entrepreneur individuel", "5410": "SARL unipersonnelle", "5499": "Société à responsabilité limitée", "5505": "SA à conseil d'administration", "5510": "SA à directoire", "5599": "SA", "5699": "SA", "5710": "SAS", "5720": "SASU", "5800": "Société Européenne", "6210": "EIRL", "5306": "SNC", "5485": "SELARL"
+            "1000": "Entrepreneur individuel",
+            "5410": "SARL unipersonnelle",
+            "5499": "Société à responsabilité limitée",
+            "5505": "SA à conseil d'administration",
+            "5510": "SA à directoire",
+            "5599": "SA",
+            "5699": "SA",
+            "5710": "SAS",
+            "5720": "SASU",
+            "5800": "Société Européenne",
+            "6210": "EIRL",
+            "5306": "SNC",
+            "5485": "SELARL"
         };
 
         let selectedCompany = null;
         let currentResults = [];
 
         ZOHO.embeddedApp.on("PageLoad", function(data) {
+            console.log("📥 PageLoad reçu :", data);
             if (data && data.EntityName) {
                 document.getElementById('searchInput').value = data.EntityName;
             }
@@ -153,6 +166,7 @@
                 actionBar.classList.add('visible');
                 statusBar.className = 'status-bar';
             } catch (error) {
+                console.error("Erreur API INSEE :", error);
                 statusBar.className = 'status-bar visible';
                 statusBar.textContent = 'Erreur API';
             }
@@ -171,14 +185,29 @@
         }
 
         function validateSelection() {
-            if (!selectedCompany) return;
+            console.log("===== DÉBUT validateSelection =====");
+
+            if (!selectedCompany) {
+                console.log("❌ Aucune société sélectionnée");
+                return;
+            }
+
+            console.log("✅ Société sélectionnée :", selectedCompany);
+
+            // Vérification de la disponibilité de l'API Zoho
+            console.log("ZOHO.CRM.UI.Record.populate :",
+                typeof ZOHO !== 'undefined' && ZOHO.CRM && ZOHO.CRM.UI && ZOHO.CRM.UI.Record
+                    ? typeof ZOHO.CRM.UI.Record.populate
+                    : 'INDISPONIBLE');
 
             var siege = selectedCompany.siege || {};
             var siren = "" + selectedCompany.siren;
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
             var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
+            // Construction de l'objet avec les VRAIS noms d'API confirmés depuis Zoho
             var recordData = {};
+
             if (nom) recordData["Account_Name"] = nom;
             if (siege.adresse) recordData["Adresse"] = siege.adresse;
             if (siege.code_postal) recordData["Code_Postale"] = siege.code_postal;
@@ -188,17 +217,25 @@
             if (selectedCompany.categorie_entreprise) recordData["Cat_gorie_d_entreprise"] = selectedCompany.categorie_entreprise;
             if (siege.siret) recordData["Siret"] = siege.siret;
 
-            console.log("Données envoyées à Zoho :", recordData);
+            console.log("📤 Données envoyées à Zoho :", recordData);
 
-            ZOHO.CRM.UI.Record.populate(recordData)
-                .then(function(response) {
-                    console.log("Populate OK :", response);
-                    ZOHO.CRM.UI.Popup.close();
-                })
-                .catch(function(err) {
-                    console.error("Erreur populate :", err);
-                    alert("Erreur lors du remplissage : " + JSON.stringify(err));
-                });
+            try {
+                ZOHO.CRM.UI.Record.populate(recordData)
+                    .then(function(response) {
+                        console.log("✅ SUCCÈS populate :", response);
+                        ZOHO.CRM.UI.Popup.close();
+                    })
+                    .catch(function(err) {
+                        console.error("❌ ERREUR catch :", err);
+                        console.error("Erreur stringifiée :", JSON.stringify(err));
+                        alert("Erreur lors du remplissage : " + JSON.stringify(err));
+                    });
+            } catch (e) {
+                console.error("❌ EXCEPTION :", e);
+                alert("Exception : " + e.message);
+            }
+
+            console.log("===== FIN validateSelection =====");
         }
 
         function closeWidget() {
