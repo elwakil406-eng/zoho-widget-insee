@@ -57,7 +57,7 @@
         .success-checkmark { width: 64px; height: 64px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; margin-bottom: 16px; animation: popIn 0.3s ease-out; }
         @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .success-overlay h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
-        .success-overlay p { font-size: 14px; color: #6b7280; }
+        .success-overlay p { font-size: 14px; color: #6b7280; text-align: center; max-width: 80%; }
     </style>
 </head>
 <body>
@@ -89,21 +89,10 @@
     <div class="success-overlay" id="successOverlay">
         <div class="success-checkmark">&#10003;</div>
         <h2>Champs remplis</h2>
-        <p>Les informations INSEE ont été appliquées au formulaire</p>
+        <p id="successMessage">Les informations INSEE ont été appliquées au formulaire</p>
     </div>
 
     <script>
-        const FIELD_MAPPING = {
-            rue:              "Adresse",
-            codePostal:       "Code_Postale",
-            ville:            "Ville",
-            formeJuridique:   "Forme_juridique",
-            tva:              "NUMERO_DE_TVA",
-            categorie:        "Cat_gorie_d_entreprise",
-            nomEntreprise:    "Account_Name",
-            siret:            "Siret"
-        };
-
         const FORMES_JURIDIQUES = {
             "1000": "Entrepreneur individuel", "5410": "SARL unipersonnelle", "5499": "Société à responsabilité limitée", "5505": "SA à conseil d'administration", "5510": "SA à directoire", "5599": "SA (sans autre indication)", "5699": "SA (sans autre indication)", "5710": "SAS", "5720": "SASU", "5800": "Société Européenne", "6210": "EIRL", "5306": "SNC", "5307": "SCS", "5308": "SCA", "5485": "SEL à responsabilité limitée", "5585": "SA SEL à conseil d'administration", "5785": "SAS SEL", "5498": "SARL (sans autre indication)", "5560": "SA à directoire (sans autre indication)", "1200": "Indivision entre personnes physiques", "5202": "Société en nom collectif coopérative", "6316": "SELAS", "6317": "SELASU", "6318": "SELARL", "6319": "SELARLU"
         };
@@ -234,37 +223,56 @@
             var siren = "" + selectedCompany.siren;
             var tva = calculerTVA(siren);
             var formeJur = getFormeJuridique(selectedCompany.nature_juridique);
+            var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
-            var fieldData = {};
-            fieldData[FIELD_MAPPING.rue] = siege.adresse || "";
-            fieldData[FIELD_MAPPING.codePostal] = siege.code_postal ? "" + siege.code_postal : "";
-            fieldData[FIELD_MAPPING.ville] = siege.libelle_commune || "";
-            fieldData[FIELD_MAPPING.formeJuridique] = formeJur;
-            fieldData[FIELD_MAPPING.tva] = tva;
-            fieldData[FIELD_MAPPING.categorie] = selectedCompany.categorie_entreprise || "";
-            fieldData[FIELD_MAPPING.siret] = siege.siret ? "" + siege.siret : "";
+            // On rassemble les données (avec le fameux Account_Name !)
+            var fieldData = {
+                "Account_Name": nom,
+                "Adresse": siege.adresse || "",
+                "Code_Postale": siege.code_postal ? "" + siege.code_postal : "",
+                "Ville": siege.libelle_commune || "",
+                "Forme_juridique": formeJur,
+                "NUMERO_DE_TVA": tva,
+                "Cat_gorie_d_entreprise": selectedCompany.categorie_entreprise || "",
+                "Siret": siege.siret ? "" + siege.siret : ""
+            };
 
-            // METHODE ANTI-BLOCAGE : On envoie les champs un par un
-            let hasSuccess = false;
+            let successCount = 0;
+            let failedFields = [];
             let keys = Object.keys(fieldData);
             
+            // On envoie les champs à Zoho un par un
             for (var k = 0; k < keys.length; k++) {
-                try {
-                    let singleData = {};
-                    singleData[keys[k]] = fieldData[keys[k]];
-                    await ZOHO.CRM.UI.Record.set({ apiName: keys[k], value: fieldData[keys[k]] });
-                    hasSuccess = true;
-                } catch(e) {
-                    console.log("Erreur sur le champ " + keys[k] + " :", e);
-                    // On ignore l'erreur et on continue avec les autres champs
+                let key = keys[k];
+                let value = fieldData[key];
+                
+                // Zoho déteste le vide, on ignore les champs qui n'ont pas de données
+                if (value !== "") {
+                    try {
+                        let singleData = {};
+                        singleData[key] = value;
+                        await ZOHO.CRM.UI.Record.populate(singleData);
+                        successCount++;
+                    } catch(e) {
+                        console.error("Erreur sur le champ " + key + " :", e);
+                        failedFields.push(key);
+                    }
                 }
             }
 
-            if(hasSuccess) {
+            if(successCount > 0) {
                 document.getElementById('successOverlay').classList.add('visible');
-                setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 1500);
+                
+                // S'il y a eu des petites erreurs sur certains champs, on l'affiche
+                if(failedFields.length > 0) {
+                    document.getElementById('successMessage').innerHTML = "Données appliquées.<br><br><small style='color:#eab308; font-weight:bold;'>Cependant, Zoho a refusé ces champs : " + failedFields.join(', ') + "</small>";
+                } else {
+                    document.getElementById('successMessage').innerText = "Toutes les informations ont été appliquées avec succès !";
+                }
+                
+                setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 3500);
             } else {
-                alert("Impossible de remplir les champs. Vérifiez la configuration.");
+                alert("Zoho a bloqué le remplissage. Champs testés : " + failedFields.join(', '));
                 btn.disabled = false;
                 btn.textContent = 'Valider la sélection';
             }
