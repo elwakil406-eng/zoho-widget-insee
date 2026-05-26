@@ -57,7 +57,7 @@
         .success-checkmark { width: 64px; height: 64px; background: linear-gradient(135deg, #059669, #10b981); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; margin-bottom: 16px; animation: popIn 0.3s ease-out; }
         @keyframes popIn { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
         .success-overlay h2 { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
-        .success-overlay p { font-size: 14px; color: #6b7280; text-align: center; max-width: 80%; }
+        .success-overlay p { font-size: 14px; color: #6b7280; }
     </style>
 </head>
 <body>
@@ -89,7 +89,7 @@
     <div class="success-overlay" id="successOverlay">
         <div class="success-checkmark">&#10003;</div>
         <h2>Champs remplis</h2>
-        <p id="successMessage">Les informations INSEE ont été appliquées au formulaire</p>
+        <p>Les informations INSEE ont été appliquées au formulaire</p>
     </div>
 
     <script>
@@ -225,54 +225,36 @@
             var formeJur = getFormeJuridique(selectedCompany.nature_juridique);
             var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
-            // On rassemble les données (avec le fameux Account_Name !)
-            var fieldData = {
-                "Account_Name": nom,
-                "Adresse": siege.adresse || "",
-                "Code_Postale": siege.code_postal ? "" + siege.code_postal : "",
-                "Ville": siege.libelle_commune || "",
-                "Forme_juridique": formeJur,
-                "NUMERO_DE_TVA": tva,
-                "Cat_gorie_d_entreprise": selectedCompany.categorie_entreprise || "",
-                "Siret": siege.siret ? "" + siege.siret : ""
-            };
+            // On prépare notre objet propre, en retirant les champs vides pour ne pas brusquer Zoho
+            var fieldData = {};
+            if(nom) fieldData["Account_Name"] = nom;
+            if(siege.adresse) fieldData["Adresse"] = siege.adresse;
+            if(siege.code_postal) fieldData["Code_Postale"] = "" + siege.code_postal;
+            if(siege.libelle_commune) fieldData["Ville"] = siege.libelle_commune;
+            if(formeJur) fieldData["Forme_juridique"] = formeJur;
+            if(tva) fieldData["NUMERO_DE_TVA"] = tva;
+            if(selectedCompany.categorie_entreprise) fieldData["Cat_gorie_d_entreprise"] = selectedCompany.categorie_entreprise;
+            if(siege.siret) fieldData["Siret"] = "" + siege.siret;
 
-            let successCount = 0;
-            let failedFields = [];
-            let keys = Object.keys(fieldData);
-            
-            // On envoie les champs à Zoho un par un
-            for (var k = 0; k < keys.length; k++) {
-                let key = keys[k];
-                let value = fieldData[key];
+            try {
+                // On tente d'envoyer l'objet à Zoho
+                await ZOHO.CRM.UI.Record.populate(fieldData);
                 
-                // Zoho déteste le vide, on ignore les champs qui n'ont pas de données
-                if (value !== "") {
-                    try {
-                        let singleData = {};
-                        singleData[key] = value;
-                        await ZOHO.CRM.UI.Record.populate(singleData);
-                        successCount++;
-                    } catch(e) {
-                        console.error("Erreur sur le champ " + key + " :", e);
-                        failedFields.push(key);
-                    }
-                }
-            }
-
-            if(successCount > 0) {
+                // Si ça marche (croisons les doigts !)
                 document.getElementById('successOverlay').classList.add('visible');
-                
-                // S'il y a eu des petites erreurs sur certains champs, on l'affiche
-                if(failedFields.length > 0) {
-                    document.getElementById('successMessage').innerHTML = "Données appliquées.<br><br><small style='color:#eab308; font-weight:bold;'>Cependant, Zoho a refusé ces champs : " + failedFields.join(', ') + "</small>";
+                setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 2000);
+
+            } catch (error) {
+                // LE PIÈGE POUR ZOHO : On capture le code d'erreur exact
+                var errorMsg = "Erreur inconnue";
+                if (typeof error === 'object') {
+                    errorMsg = JSON.stringify(error, null, 2);
                 } else {
-                    document.getElementById('successMessage').innerText = "Toutes les informations ont été appliquées avec succès !";
+                    errorMsg = error;
                 }
                 
-                setTimeout(function() { ZOHO.CRM.UI.Popup.close(); }, 3500);
-            } else {
-                alert("Zoho a bloqué le remplissage. Champs testés : " + failedFields.join(', '));
+                alert("ZOHO REFUSE L'INSERTION.\n\nVoici son code secret :\n" + errorMsg + "\n\n-> PRENDS UNE CAPTURE DE CE MESSAGE !");
+                
                 btn.disabled = false;
                 btn.textContent = 'Valider la sélection';
             }
