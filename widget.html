@@ -178,27 +178,27 @@
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
             var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
-            // LA MÉTHODE FORTE : on construit l'URL de création avec les paramètres
-            // On récupère l'URL actuelle du parent
-            var parentUrl = window.parent.location.href;
-            
-            // On nettoie l'URL (si elle a déjà des paramètres)
-            var baseUrl = parentUrl.split('?')[0];
+            var recordData = {};
+            if (nom) recordData["Account_Name"] = nom;
+            if (siege.adresse) recordData["Adresse"] = siege.adresse;
+            if (siege.code_postal) recordData["Code_Postale"] = siege.code_postal;
+            if (siege.libelle_commune) recordData["Ville"] = siege.libelle_commune;
+            if (formeJur) recordData["Forme_juridique"] = formeJur;
+            if (siren) recordData["NUMERO_DE_TVA"] = calculerTVA(siren);
+            if (selectedCompany.categorie_entreprise) recordData["Cat_gorie_d_entreprise"] = selectedCompany.categorie_entreprise;
+            if (siege.siret) recordData["Siret"] = siege.siret;
 
-            // On construit la chaîne de paramètres
-            var params = new URLSearchParams();
-            
-            if (nom) params.append("Account_Name", nom);
-            if (siege.adresse) params.append("Adresse", siege.adresse);
-            if (siege.code_postal) params.append("Code_Postale", siege.code_postal);
-            if (siege.libelle_commune) params.append("Ville", siege.libelle_commune);
-            if (formeJur) params.append("Forme_juridique", formeJur);
-            if (siren) params.append("NUMERO_DE_TVA", calculerTVA(siren));
-            if (selectedCompany.categorie_entreprise) params.append("Cat_gorie_d_entreprise", selectedCompany.categorie_entreprise);
-            if (siege.siret) params.append("Siret", siege.siret);
+            console.log("Données envoyées à Zoho :", recordData);
 
-            // On force le parent à recharger avec ces paramètres
-            window.parent.location.href = baseUrl + "?" + params.toString();
+            ZOHO.CRM.UI.Record.populate(recordData)
+                .then(function(response) {
+                    console.log("Populate OK :", response);
+                    ZOHO.CRM.UI.Popup.close();
+                })
+                .catch(function(err) {
+                    console.error("Erreur populate :", err);
+                    alert("Erreur lors du remplissage : " + JSON.stringify(err));
+                });
         }
 
         function closeWidget() {
