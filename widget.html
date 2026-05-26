@@ -177,26 +177,25 @@
             var siren = "" + selectedCompany.siren;
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
 
-            // Préparation des données avec les noms d'API stricts de ton Zoho
-            var dataToSend = {
-                "Account_Name": selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "",
-                "Adresse": siege.adresse || "",
-                "Code_Postale": siege.code_postal ? "" + siege.code_postal : "",
-                "Ville": siege.libelle_commune || "",
-                "Forme_juridique": formeJur,
-                "NUMERO_DE_TVA": calculerTVA(siren),
-                "Cat_gorie_d_entreprise": selectedCompany.categorie_entreprise || "",
-                "Siret": siege.siret ? "" + siege.siret : ""
-            };
+            // On prépare l'objet proprement en ignorant les valeurs vides
+            var dataToSend = {};
+            var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale;
+            
+            if (nom) dataToSend["Account_Name"] = nom;
+            if (siege.adresse) dataToSend["Adresse"] = siege.adresse;
+            if (siege.code_postal) dataToSend["Code_Postale"] = "" + siege.code_postal;
+            if (siege.libelle_commune) dataToSend["Ville"] = siege.libelle_commune;
+            if (formeJur) dataToSend["Forme_juridique"] = formeJur;
+            if (siren) dataToSend["NUMERO_DE_TVA"] = calculerTVA(siren);
+            if (selectedCompany.categorie_entreprise) dataToSend["Cat_gorie_d_entreprise"] = selectedCompany.categorie_entreprise;
+            if (siege.siret) dataToSend["Siret"] = "" + siege.siret;
 
-            // Envoi au Client Script
-            window.parent.postMessage({
-                type: "INSEE_DATA",
-                data: dataToSend
-            }, "*");
-
-            // Fermeture immédiate du widget
-            ZOHO.CRM.UI.Popup.close();
+            // LA COMMANDE OFFICIELLE ZOHO
+            ZOHO.CRM.UI.Record.populate(dataToSend).then(function() {
+                ZOHO.CRM.UI.Popup.close();
+            }).catch(function(err) {
+                alert("Erreur technique Zoho : " + JSON.stringify(err));
+            });
         }
 
         function closeWidget() {
