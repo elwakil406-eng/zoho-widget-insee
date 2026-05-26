@@ -176,26 +176,29 @@
             var siege = selectedCompany.siege || {};
             var siren = "" + selectedCompany.siren;
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
+            var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
-            // On prépare l'objet proprement en ignorant les valeurs vides
-            var dataToSend = {};
-            var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale;
+            // LA MÉTHODE FORTE : on construit l'URL de création avec les paramètres
+            // On récupère l'URL actuelle du parent
+            var parentUrl = window.parent.location.href;
             
-            if (nom) dataToSend["Account_Name"] = nom;
-            if (siege.adresse) dataToSend["Adresse"] = siege.adresse;
-            if (siege.code_postal) dataToSend["Code_Postale"] = "" + siege.code_postal;
-            if (siege.libelle_commune) dataToSend["Ville"] = siege.libelle_commune;
-            if (formeJur) dataToSend["Forme_juridique"] = formeJur;
-            if (siren) dataToSend["NUMERO_DE_TVA"] = calculerTVA(siren);
-            if (selectedCompany.categorie_entreprise) dataToSend["Cat_gorie_d_entreprise"] = selectedCompany.categorie_entreprise;
-            if (siege.siret) dataToSend["Siret"] = "" + siege.siret;
+            // On nettoie l'URL (si elle a déjà des paramètres)
+            var baseUrl = parentUrl.split('?')[0];
 
-            // LA COMMANDE OFFICIELLE ZOHO
-            ZOHO.CRM.UI.Record.populate(dataToSend).then(function() {
-                ZOHO.CRM.UI.Popup.close();
-            }).catch(function(err) {
-                alert("Erreur technique Zoho : " + JSON.stringify(err));
-            });
+            // On construit la chaîne de paramètres
+            var params = new URLSearchParams();
+            
+            if (nom) params.append("Account_Name", nom);
+            if (siege.adresse) params.append("Adresse", siege.adresse);
+            if (siege.code_postal) params.append("Code_Postale", siege.code_postal);
+            if (siege.libelle_commune) params.append("Ville", siege.libelle_commune);
+            if (formeJur) params.append("Forme_juridique", formeJur);
+            if (siren) params.append("NUMERO_DE_TVA", calculerTVA(siren));
+            if (selectedCompany.categorie_entreprise) params.append("Cat_gorie_d_entreprise", selectedCompany.categorie_entreprise);
+            if (siege.siret) params.append("Siret", siege.siret);
+
+            // On force le parent à recharger avec ces paramètres
+            window.parent.location.href = baseUrl + "?" + params.toString();
         }
 
         function closeWidget() {
