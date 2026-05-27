@@ -76,20 +76,121 @@
     </div>
 
     <script>
+        // TABLE OFFICIELLE INSEE DES FORMES JURIDIQUES - LIBELLÉS COURTS
         const FORMES_JURIDIQUES = {
+            // Entrepreneurs individuels
             "1000": "Entrepreneur individuel",
-            "5410": "SARL unipersonnelle",
-            "5499": "Société à responsabilité limitée",
+            // Sociétés civiles
+            "6521": "SCPI",
+            "6532": "SCI",
+            "6533": "GAEC",
+            "6534": "SCEA",
+            "6535": "Groupement foncier agricole",
+            "6536": "GFR",
+            "6537": "Copropriété",
+            "6538": "Société civile de moyens",
+            "6539": "Société civile",
+            "6540": "SARL",
+            "6541": "SCM",
+            "6542": "SCP",
+            "6543": "SC",
+            "6544": "Société civile laitière",
+            "6551": "SC particulière",
+            "6554": "SC consommation",
+            "6558": "SC d'attribution",
+            "6560": "SC",
+            "6561": "SCP d'avocats",
+            "6562": "SCP d'avocats à capital variable",
+            "6563": "SCP d'avoués d'appel",
+            "6564": "SCP d'huissiers",
+            "6565": "SCP de notaires",
+            "6566": "SCP de commissaires-priseurs",
+            "6567": "SCP de greffiers de tribunal de commerce",
+            "6568": "SCP de conseils juridiques",
+            "6569": "SCP de commissaires aux comptes",
+            "6571": "SCP de médecins",
+            "6572": "SCP de dentistes",
+            "6573": "SCP d'infirmiers",
+            "6574": "SCP de masseurs-kinésithérapeutes",
+            "6575": "SCP de directeurs de laboratoire",
+            "6576": "SCP de vétérinaires",
+            "6577": "SCP de géomètres experts",
+            "6578": "SCP d'architectes",
+            "6585": "Autre SCP",
+            "6588": "Société civile laitière",
+            "6589": "SC à objet général",
+            "6595": "Caisse locale de crédit mutuel",
+            "6596": "Caisse de crédit agricole mutuel",
+            // SARL
+            "5410": "SARL d'économie mixte",
+            "5415": "SARL coopérative de construction",
+            "5422": "SARL immobilière de copropriété",
+            "5426": "SARL immobilière de gestion",
+            "5430": "SARL d'attribution",
+            "5431": "SARL coopérative de consommation",
+            "5432": "SARL coopérative artisanale",
+            "5442": "SARL coopérative ouvrière de production",
+            "5443": "SARL coopérative agricole",
+            "5451": "SARL non coopérative",
+            "5453": "SARL unipersonnelle",
+            "5454": "SARL coopérative artisanale",
+            "5455": "SARL coopérative d'intérêt maritime",
+            "5458": "SARL unipersonnelle",
+            "5459": "SARL",
+            "5460": "SARL d'exercice libéral à responsabilité limitée",
+            "5470": "SARL de presse",
+            "5485": "SELARL",
+            "5499": "SARL",
+            // SA
             "5505": "SA à conseil d'administration",
             "5510": "SA à directoire",
+            "5515": "SA d'économie mixte",
+            "5520": "Fonds à forme sociétaire",
+            "5522": "SA immobilière de copropriété",
+            "5525": "SA d'attribution",
+            "5530": "SA coopérative de construction",
+            "5531": "SA coopérative de production de HLM",
+            "5532": "SA coopérative de consommation",
+            "5542": "SA coopérative ouvrière de production",
+            "5543": "SA coopérative agricole",
+            "5546": "SA coopérative d'intérêt maritime",
+            "5547": "SA coopérative de transport",
+            "5548": "SA coopérative artisanale",
+            "5551": "SA non coopérative",
+            "5552": "SA coopérative",
+            "5553": "SA HLM",
+            "5554": "SA de crédit immobilier",
+            "5555": "SA d'économie mixte",
+            "5558": "SEM SPL",
+            "5559": "SA",
+            "5560": "Autre SA",
+            "5570": "SA de presse",
+            "5585": "SA à participation ouvrière",
             "5599": "SA",
-            "5699": "SA",
+            // SAS
             "5710": "SAS",
             "5720": "SASU",
+            "5785": "SELAS",
             "5800": "Société Européenne",
-            "6210": "EIRL",
+            // SNC
             "5306": "SNC",
-            "5485": "SELARL"
+            "5307": "SNC coopérative",
+            // SCS
+            "5202": "SCS",
+            "5203": "SCA",
+            // EIRL
+            "1000": "Entrepreneur individuel",
+            "6210": "GEIE",
+            "6220": "GIE",
+            // Associations
+            "9220": "Association",
+            "9221": "Association déclarée",
+            "9222": "Association déclarée d'insertion",
+            "9223": "Association déclarée reconnue d'utilité publique",
+            "9224": "Association déclarée subventionnée",
+            "9230": "Association non déclarée",
+            "9240": "Congrégation",
+            "9260": "Association de droit local"
         };
 
         let selectedCompany = null;
@@ -103,9 +204,9 @@
                 "https://static.zohocdn.com/crm/javascript/api/2.0/api.js",
                 "https://js.zohostatic.com/crm/jsapi/2.0/ZSDK.js"
             ];
-            
+
             var currentIndex = 0;
-            
+
             function tryNext() {
                 if (currentIndex >= sdkUrls.length) {
                     console.error("❌ Tous les URLs SDK ont échoué");
@@ -113,16 +214,15 @@
                     document.getElementById('sdkStatus').textContent = '❌ SDK Zoho introuvable - voir console';
                     return;
                 }
-                
+
                 var url = sdkUrls[currentIndex];
                 console.log("🔄 Tentative chargement SDK : " + url);
-                
+
                 var script = document.createElement('script');
                 script.src = url;
-                
+
                 script.onload = function() {
                     console.log("✅ Script chargé : " + url);
-                    // Attendre un court instant pour que ZOHO soit défini
                     setTimeout(function() {
                         if (typeof ZOHO !== 'undefined') {
                             console.log("✅ Objet ZOHO disponible !");
@@ -135,19 +235,19 @@
                         }
                     }, 200);
                 };
-                
+
                 script.onerror = function() {
                     console.error("❌ Échec chargement : " + url);
                     currentIndex++;
                     tryNext();
                 };
-                
+
                 document.head.appendChild(script);
             }
-            
+
             tryNext();
         }
-        
+
         function initZohoApp() {
             try {
                 ZOHO.embeddedApp.on("PageLoad", function(data) {
@@ -160,7 +260,6 @@
                 console.log("✅ embeddedApp.init() OK");
                 document.getElementById('sdkStatus').className = 'sdk-status ok';
                 document.getElementById('sdkStatus').textContent = '✅ SDK Zoho prêt';
-                // Masquer le statut après 2 secondes
                 setTimeout(function() {
                     document.getElementById('sdkStatus').style.display = 'none';
                 }, 2000);
@@ -170,8 +269,7 @@
                 document.getElementById('sdkStatus').textContent = '❌ Erreur init : ' + e.message;
             }
         }
-        
-        // Lancement du chargement dès l'ouverture
+
         loadZohoSDK();
 
         document.getElementById('searchInput').addEventListener('keydown', function(e) {
@@ -185,6 +283,26 @@
             var cle = ((12 + 3 * (sirenNum % 97)) % 97);
             var cleStr = cle < 10 ? "0" + cle : "" + cle;
             return "FR" + cleStr + siren;
+        }
+
+        // NOUVEAU : Extraction de la rue uniquement (sans CP ni ville)
+        function extraireRue(adresseComplete, codePostal, ville) {
+            if (!adresseComplete) return "";
+            var rue = adresseComplete;
+            // Retire le code postal s'il est présent
+            if (codePostal) {
+                rue = rue.replace(codePostal, "");
+            }
+            // Retire la ville s'il est présente (insensible à la casse)
+            if (ville) {
+                var regexVille = new RegExp(ville, "gi");
+                rue = rue.replace(regexVille, "");
+            }
+            // Nettoie les espaces multiples et trim
+            rue = rue.replace(/\s+/g, " ").trim();
+            // Retire une virgule finale éventuelle
+            rue = rue.replace(/,\s*$/, "").trim();
+            return rue;
         }
 
         async function searchCompany() {
@@ -280,9 +398,12 @@
             var formeJur = FORMES_JURIDIQUES["" + selectedCompany.nature_juridique] || selectedCompany.nature_juridique || "";
             var nom = selectedCompany.nom_complet || selectedCompany.nom_raison_sociale || "";
 
+            // Extraction de la rue uniquement
+            var rueOnly = extraireRue(siege.adresse, siege.code_postal, siege.libelle_commune);
+
             var recordData = {};
             if (nom) recordData["Account_Name"] = nom;
-            if (siege.adresse) recordData["Adresse"] = siege.adresse;
+            if (rueOnly) recordData["Adresse"] = rueOnly;
             if (siege.code_postal) recordData["Code_Postale"] = siege.code_postal;
             if (siege.libelle_commune) recordData["Ville"] = siege.libelle_commune;
             if (formeJur) recordData["Forme_juridique"] = formeJur;
