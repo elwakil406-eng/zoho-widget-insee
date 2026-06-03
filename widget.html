@@ -2,11 +2,14 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="HandheldFriendly" content="true">
+    <meta name="MobileOptimized" content="width">
     <title>Recherche INSEE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
         html, body { height: 100%; overflow: hidden; }
         body {
             font-family: 'DM Sans', sans-serif;
@@ -14,6 +17,7 @@
             color: #1a1a2e;
             display: flex;
             flex-direction: column;
+            touch-action: manipulation;
         }
         .main-container {
             flex: 1;
@@ -28,7 +32,7 @@
         .module-badge { display: inline-block; background: #e0edff; color: #0052cc; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
         .search-section { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; }
         .search-row { display: flex; gap: 8px; }
-        .search-input { flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; min-width: 0; }
+        .search-input { flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 16px; font-family: 'DM Sans', sans-serif; outline: none; min-width: 0; }
         .search-input:focus { border-color: #2684ff; box-shadow: 0 0 0 3px rgba(38, 132, 255, 0.15); }
         .btn-search { padding: 12px 18px; background: linear-gradient(135deg, #0052cc, #2684ff); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
         .btn-search:disabled { opacity: 0.6; }
@@ -51,14 +55,16 @@
             display: none;
             background: white;
             border-top: 1px solid #e5e7eb;
-            padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+            padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
             gap: 8px;
-            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
             flex-shrink: 0;
+            position: relative;
+            z-index: 100;
         }
         .action-bar.visible { display: flex; }
-        .btn-cancel { flex: 1; padding: 13px 16px; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-validate { flex: 2; padding: 13px 18px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-cancel { flex: 1; padding: 14px 16px; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-validate { flex: 2; padding: 14px 18px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
         .btn-validate:disabled { opacity: 0.5; }
         .empty-state { text-align: center; padding: 30px 20px; color: #9ca3af; font-size: 13px; }
         .sdk-status { padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 500; }
@@ -79,8 +85,9 @@
             .detail-item { font-size: 12.5px; }
             .result-card { padding: 12px 14px; }
             .result-card .company-name { font-size: 14.5px; }
-            .action-bar { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
-            .btn-cancel, .btn-validate { padding: 14px 16px; font-size: 14px; }
+            /* MARGE EN BAS RENFORCÉE pour éviter le chevauchement avec la barre zoom Android */
+            .action-bar { padding: 14px 14px calc(40px + env(safe-area-inset-bottom)); }
+            .btn-cancel, .btn-validate { padding: 15px 16px; font-size: 15px; font-weight: 700; }
         }
     </style>
 </head>
@@ -184,6 +191,10 @@
         let currentResults = [];
         let sdkLoaded = false;
         let currentModule = null;
+
+        // Empêche le double-tap zoom et le pinch zoom (renforcement contre la barre zoom Android)
+        document.addEventListener('gesturestart', function(e) { e.preventDefault(); });
+        document.addEventListener('dblclick', function(e) { e.preventDefault(); });
 
         function loadZohoSDK() {
             var sdkUrls = [
@@ -347,10 +358,6 @@
             document.getElementById('card-' + index).classList.add('selected');
             selectedCompany = currentResults[index];
             document.getElementById('btnValidate').disabled = false;
-            // Scroll automatique vers le bouton sur mobile pour qu'il soit visible
-            setTimeout(function() {
-                document.getElementById('btnValidate').scrollIntoView({behavior: 'smooth', block: 'nearest'});
-            }, 100);
         }
 
         function validateSelection() {
