@@ -2,74 +2,112 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Recherche INSEE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; background: #f8f9fb; color: #1a1a2e; padding: 24px; min-height: 100vh; }
-        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-        .header-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #0052cc, #2684ff); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3); }
-        .header-text h1 { font-size: 18px; font-weight: 700; color: #1a1a2e; }
-        .header-text p { font-size: 13px; color: #6b7280; margin-top: 2px; }
-        .module-badge { display: inline-block; background: #e0edff; color: #0052cc; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 8px; }
-        .search-section { background: white; border-radius: 14px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); margin-bottom: 20px; }
-        .search-row { display: flex; gap: 10px; }
-        .search-input { flex: 1; padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; transition: all 0.2s; outline: none; }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f8f9fb;
+            color: #1a1a2e;
+            display: flex;
+            flex-direction: column;
+        }
+        .main-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 20px 16px 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .header-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #0052cc, #2684ff); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3); flex-shrink: 0; }
+        .header-text h1 { font-size: 17px; font-weight: 700; color: #1a1a2e; line-height: 1.2; }
+        .header-text p { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .module-badge { display: inline-block; background: #e0edff; color: #0052cc; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-left: 6px; vertical-align: middle; }
+        .search-section { background: white; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 16px; }
+        .search-row { display: flex; gap: 8px; }
+        .search-input { flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; min-width: 0; }
         .search-input:focus { border-color: #2684ff; box-shadow: 0 0 0 3px rgba(38, 132, 255, 0.15); }
-        .btn-search { padding: 12px 24px; background: linear-gradient(135deg, #0052cc, #2684ff); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-        .btn-search:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 82, 204, 0.35); }
-        .btn-search:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .status-bar { margin-top: 12px; font-size: 13px; color: #6b7280; display: none; }
+        .btn-search { padding: 12px 18px; background: linear-gradient(135deg, #0052cc, #2684ff); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .btn-search:disabled { opacity: 0.6; }
+        .status-bar { margin-top: 10px; font-size: 12px; color: #6b7280; display: none; }
         .status-bar.visible { display: block; }
         .results-section { display: none; }
         .results-section.visible { display: block; }
-        .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-        .results-header h2 { font-size: 15px; font-weight: 600; }
-        .results-count { background: #e0edff; color: #0052cc; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .result-card { background: white; border-radius: 12px; padding: 16px 20px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
-        .result-card:hover { border-color: #2684ff; box-shadow: 0 4px 12px rgba(38, 132, 255, 0.15); transform: translateY(-1px); }
+        .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .results-header h2 { font-size: 14px; font-weight: 600; }
+        .results-count { background: #e0edff; color: #0052cc; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .result-card { background: white; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .result-card:active { transform: scale(0.98); }
         .result-card.selected { border-color: #0052cc; background: #f0f7ff; }
-        .result-card .company-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
-        .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 20px; margin-top: 8px; }
-        .detail-item { display: flex; align-items: baseline; gap: 6px; font-size: 12.5px; }
-        .detail-label { color: #9ca3af; font-weight: 500; }
-        .detail-value { color: #374151; font-weight: 500; }
-        .action-bar { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
-        .action-bar.visible { display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-cancel { padding: 10px 20px; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
-        .btn-validate { padding: 10px 24px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-validate:hover { box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); }
-        .btn-validate:disabled { opacity: 0.6; cursor: not-allowed; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; }
-        .sdk-status { padding: 8px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 12px; font-weight: 500; }
+        .result-card .company-name { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+        .result-details { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; margin-top: 6px; }
+        .detail-item { display: flex; align-items: baseline; gap: 4px; font-size: 11.5px; min-width: 0; }
+        .detail-label { color: #9ca3af; font-weight: 500; flex-shrink: 0; }
+        .detail-value { color: #374151; font-weight: 500; word-break: break-word; min-width: 0; }
+        .action-bar {
+            display: none;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+            gap: 8px;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+            flex-shrink: 0;
+        }
+        .action-bar.visible { display: flex; }
+        .btn-cancel { flex: 1; padding: 13px 16px; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-validate { flex: 2; padding: 13px 18px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-validate:disabled { opacity: 0.5; }
+        .empty-state { text-align: center; padding: 30px 20px; color: #9ca3af; font-size: 13px; }
+        .sdk-status { padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 11px; font-weight: 500; }
         .sdk-status.loading { background: #fef3c7; color: #92400e; }
         .sdk-status.ok { background: #d1fae5; color: #065f46; }
         .sdk-status.error { background: #fee2e2; color: #991b1b; }
+
+        /* ====== MOBILE OPTIMISATIONS ====== */
+        @media (max-width: 600px) {
+            .main-container { padding: 16px 14px 14px 14px; }
+            .header-icon { width: 38px; height: 38px; font-size: 16px; }
+            .header-text h1 { font-size: 15px; }
+            .header-text p { font-size: 11px; }
+            .search-section { padding: 12px; }
+            .search-row { flex-direction: column; gap: 8px; }
+            .btn-search { width: 100%; padding: 13px 16px; }
+            .result-details { grid-template-columns: 1fr; gap: 3px; }
+            .detail-item { font-size: 12.5px; }
+            .result-card { padding: 12px 14px; }
+            .result-card .company-name { font-size: 14.5px; }
+            .action-bar { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); }
+            .btn-cancel, .btn-validate { padding: 14px 16px; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-icon">IN</div>
-        <div class="header-text">
-            <h1>Recherche INSEE <span class="module-badge" id="moduleBadge">...</span></h1>
-            <p>Recherchez une entreprise par raison sociale</p>
+    <div class="main-container">
+        <div class="header">
+            <div class="header-icon">IN</div>
+            <div class="header-text">
+                <h1>Recherche INSEE <span class="module-badge" id="moduleBadge">...</span></h1>
+                <p>Recherchez une entreprise par raison sociale</p>
+            </div>
         </div>
-    </div>
-    <div class="sdk-status loading" id="sdkStatus">⏳ Chargement du SDK Zoho...</div>
-    <div class="search-section">
-        <div class="search-row">
-            <input type="text" class="search-input" id="searchInput" placeholder="Saisissez la raison sociale..." autofocus>
-            <button class="btn-search" id="btnSearch" onclick="searchCompany()">Rechercher</button>
+        <div class="sdk-status loading" id="sdkStatus">⏳ Chargement du SDK Zoho...</div>
+        <div class="search-section">
+            <div class="search-row">
+                <input type="text" class="search-input" id="searchInput" placeholder="Saisissez la raison sociale..." autofocus>
+                <button class="btn-search" id="btnSearch" onclick="searchCompany()">Rechercher</button>
+            </div>
+            <div class="status-bar" id="statusBar"></div>
         </div>
-        <div class="status-bar" id="statusBar"></div>
-    </div>
-    <div class="results-section" id="resultsSection">
-        <div class="results-header">
-            <h2>Résultats INSEE</h2>
-            <span class="results-count" id="resultsCount"></span>
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Résultats INSEE</h2>
+                <span class="results-count" id="resultsCount"></span>
+            </div>
+            <div id="resultsContainer"></div>
         </div>
-        <div id="resultsContainer"></div>
     </div>
     <div class="action-bar" id="actionBar">
         <button class="btn-cancel" onclick="closeWidget()">Annuler</button>
@@ -77,7 +115,6 @@
     </div>
 
     <script>
-        // TABLE OFFICIELLE INSEE DES FORMES JURIDIQUES - LIBELLÉS COURTS
         const FORMES_JURIDIQUES = {
             "1000": "Entrepreneur individuel",
             "6521": "SCPI", "6532": "SCI", "6533": "GAEC", "6534": "SCEA",
@@ -120,7 +157,6 @@
             "9240": "Congrégation", "9260": "Association de droit local"
         };
 
-        // MAPPING DES CHAMPS PAR MODULE
         const FIELD_MAPPING = {
             "Accounts": {
                 name: ["Account_Name"],
@@ -159,19 +195,16 @@
 
             function tryNext() {
                 if (currentIndex >= sdkUrls.length) {
-                    console.error("❌ Tous les URLs SDK ont échoué");
                     document.getElementById('sdkStatus').className = 'sdk-status error';
                     document.getElementById('sdkStatus').textContent = '❌ SDK Zoho introuvable';
                     return;
                 }
                 var url = sdkUrls[currentIndex];
-                console.log("🔄 Tentative SDK : " + url);
                 var script = document.createElement('script');
                 script.src = url;
                 script.onload = function() {
                     setTimeout(function() {
                         if (typeof ZOHO !== 'undefined') {
-                            console.log("✅ ZOHO disponible");
                             sdkLoaded = true;
                             initZohoApp();
                         } else {
@@ -192,10 +225,7 @@
         function initZohoApp() {
             try {
                 ZOHO.embeddedApp.on("PageLoad", function(data) {
-                    console.log("📥 PageLoad reçu :", data);
                     currentModule = data.module || (data.Entity ? data.Entity : null);
-                    console.log("📦 Module détecté :", currentModule);
-                    
                     var badge = document.getElementById('moduleBadge');
                     if (currentModule === "Accounts") {
                         badge.textContent = "Enseignes";
@@ -204,20 +234,17 @@
                     } else {
                         badge.textContent = currentModule || "?";
                     }
-                    
                     if (data && data.EntityName) {
                         document.getElementById('searchInput').value = data.EntityName;
                     }
                 });
                 ZOHO.embeddedApp.init();
-                console.log("✅ embeddedApp.init() OK");
                 document.getElementById('sdkStatus').className = 'sdk-status ok';
                 document.getElementById('sdkStatus').textContent = '✅ SDK Zoho prêt';
                 setTimeout(function() {
                     document.getElementById('sdkStatus').style.display = 'none';
                 }, 2000);
             } catch (e) {
-                console.error("❌ Erreur init :", e);
                 document.getElementById('sdkStatus').className = 'sdk-status error';
                 document.getElementById('sdkStatus').textContent = '❌ Erreur init : ' + e.message;
             }
@@ -305,7 +332,6 @@
                 actionBar.classList.add('visible');
                 statusBar.className = 'status-bar';
             } catch (error) {
-                console.error("Erreur API INSEE :", error);
                 statusBar.className = 'status-bar visible';
                 statusBar.textContent = 'Erreur API';
             }
@@ -321,27 +347,21 @@
             document.getElementById('card-' + index).classList.add('selected');
             selectedCompany = currentResults[index];
             document.getElementById('btnValidate').disabled = false;
+            // Scroll automatique vers le bouton sur mobile pour qu'il soit visible
+            setTimeout(function() {
+                document.getElementById('btnValidate').scrollIntoView({behavior: 'smooth', block: 'nearest'});
+            }, 100);
         }
 
         function validateSelection() {
-            console.log("===== DÉBUT validateSelection =====");
-
-            if (!selectedCompany) {
-                console.log("❌ Aucune société sélectionnée");
-                return;
-            }
-
+            if (!selectedCompany) return;
             if (typeof ZOHO === 'undefined') {
-                alert("Le SDK Zoho n'est pas chargé.");
+                alert("SDK Zoho non chargé.");
                 return;
             }
 
             var mapping = FIELD_MAPPING[currentModule];
-            if (!mapping) {
-                console.warn("⚠️ Module inconnu : " + currentModule + ", utilisation par défaut Accounts");
-                mapping = FIELD_MAPPING["Accounts"];
-            }
-            console.log("🔧 Module actif :", currentModule, "| Mapping :", mapping);
+            if (!mapping) mapping = FIELD_MAPPING["Accounts"];
 
             var siege = selectedCompany.siege || {};
             var siren = "" + selectedCompany.siren;
@@ -350,7 +370,6 @@
             var rueOnly = extraireRue(siege.adresse, siege.code_postal, siege.libelle_commune);
 
             var recordData = {};
-
             if (nom && mapping.name) {
                 mapping.name.forEach(function(fieldName) {
                     recordData[fieldName] = nom;
@@ -366,20 +385,15 @@
             }
             if (siege.siret && mapping.siret) recordData[mapping.siret] = siege.siret;
 
-            console.log("📤 Données envoyées à Zoho :", recordData);
-
             try {
                 ZOHO.CRM.UI.Record.populate(recordData)
                     .then(function(response) {
-                        console.log("✅ SUCCÈS populate :", response);
                         ZOHO.CRM.UI.Popup.close();
                     })
                     .catch(function(err) {
-                        console.error("❌ ERREUR catch :", err);
                         alert("Erreur : " + JSON.stringify(err));
                     });
             } catch (e) {
-                console.error("❌ EXCEPTION :", e);
                 alert("Exception : " + e.message);
             }
         }
